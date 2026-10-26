@@ -1,0 +1,23 @@
+name: "felix_remittances"
+version: "1.0.0"
+config-version: 2
+
+profile: "felix_remittances"
+
+model-paths: ["models"]
+macro-paths: ["macros"]
+test-paths: ["tests"]
+target-path: "target"
+clean-targets: ["target", "dbt_packages"]
+
+models:
+  felix_remittances:
+    +database: lake
+    +materialized: view
+    staging:
+      +schema: staging
+    intermediate:
+      +schema: intermediate
+    marts:
+      +database: felix
+      +schema: marts

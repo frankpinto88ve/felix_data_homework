@@ -1,0 +1,17 @@
+.venv/
+.idea/
+__pycache__/
+*.py[cod]
+.DS_Store
+
+# Generated local warehouse and dbt artifacts
+warehouse/
+lake/
+dbt_project/target/
+dbt_project/logs/
+dbt_project/dbt_packages/
+
+# CSVs are supplied input files; keep the directory but do not commit copies.
+data/raw/*.csv
+data/raw/__MACOSX/
+data/raw/._*.csv

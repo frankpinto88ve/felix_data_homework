@@ -1,0 +1,8 @@
+version: 2
+
+models:
+  - name: int_receipts_enriched
+    description: "Daily receipt-event-partitioned Iceberg table enriched with the current payment and disbursement state."
+    columns:
+      - name: receipt_id
+        tests: [not_null, unique]

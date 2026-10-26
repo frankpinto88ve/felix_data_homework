@@ -1,0 +1,64 @@
+version: 2
+
+models:
+  - name: monthly_remittance_metrics
+    description: "Current UTC calendar-month sender-side transaction volume and payment chargeback metrics for fully linked remittances."
+    columns:
+      - name: reporting_month
+        description: "First day of the UTC reporting month, derived from receipt_created_at."
+        tests: [not_null]
+      - name: destination_country_code
+        tests: [not_null]
+      - name: destination_currency
+        tests: [not_null]
+      - name: payment_currency
+        description: "Currency of total_amount_charged."
+        tests: [not_null]
+      - name: total_amount_charged
+        description: "Sender transfer principal, excluding fees."
+        tests: [not_null]
+      - name: chargeback_rate
+        tests: [not_null]
+
+  - name: monthly_user_metrics
+    description: "Current UTC calendar-month user metrics, including recurring-customer and top-50-percent-volume classifications."
+    columns:
+      - name: reporting_month
+        tests: [not_null]
+      - name: sender_user_id
+        tests: [not_null]
+      - name: payment_currency
+        tests: [not_null]
+      - name: is_recurring_customer
+        description: "True when the sender made at least two fully linked remittances in the month."
+        tests: [not_null]
+      - name: high_spender_classification
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['high_spender', 'not_high_spender']
+
+  - name: monthly_provider_disbursement_metrics
+    description: "Current UTC calendar-month provider performance for fully linked disbursements; only normalized FAILED status counts as a failure."
+    columns:
+      - name: reporting_month
+        tests: [not_null]
+      - name: provider_name
+        tests: [not_null]
+      - name: failed_disbursement_rate
+        tests: [not_null]
+      - name: provider_classification
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['no_failures', 'has_failures', 'all_failed']
+
+  - name: beneficiary_sender_clusters
+    description: "Current UTC calendar-month beneficiary clusters shared by at least two distinct senders."
+    columns:
+      - name: reporting_month
+        tests: [not_null]
+      - name: beneficiary_id
+        tests: [not_null]
+      - name: sending_user_count
+        tests: [not_null]

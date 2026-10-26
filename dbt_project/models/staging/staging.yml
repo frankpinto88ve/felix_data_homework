@@ -1,0 +1,23 @@
+version: 2
+models:
+  - name: stg_payments
+    description: "Daily event-time-partitioned Iceberg table with one current row per payment ID."
+    columns:
+      - name: payment_id
+        tests: [not_null, unique]
+
+  - name: stg_receipts
+    description: "Daily event-time-partitioned Iceberg table with one current row per receipt ID."
+    columns:
+      - name: receipt_id
+        tests: [not_null, unique]
+      - name: payment_id
+        tests: [not_null]
+      - name: disbursement_id
+        tests: [not_null]
+
+  - name: stg_disbursements
+    description: "Daily event-time-partitioned Iceberg table with one current row per disbursement ID."
+    columns:
+      - name: disbursement_id
+        tests: [not_null, unique]

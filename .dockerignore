@@ -1,0 +1,9 @@
+.git/
+.venv/
+__pycache__/
+data/raw/
+lake/
+warehouse/
+dbt_project/target/
+Arquivo.zip
+*.pdf

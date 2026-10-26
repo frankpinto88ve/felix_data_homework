@@ -1,0 +1,21 @@
+services:
+  iceberg-rest:
+    image: apache/iceberg-rest-fixture:latest
+    environment:
+      CATALOG_WAREHOUSE: /warehouse
+    ports:
+      - "8181:8181"
+    volumes:
+      - ./lake:/warehouse
+
+  pipeline:
+    build: .
+    depends_on:
+      - iceberg-rest
+    environment:
+      ICEBERG_CATALOG_ENDPOINT: http://iceberg-rest:8181
+      ICEBERG_LOCAL_WAREHOUSE_PATH: /warehouse
+    volumes:
+      - .:/app
+      - ./lake:/warehouse
+    working_dir: /app

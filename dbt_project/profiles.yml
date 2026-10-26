@@ -1,0 +1,22 @@
+felix_remittances:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: "../warehouse/felix.duckdb"
+      schema: analytics
+      threads: 1
+      extensions:
+        - iceberg
+      settings:
+        TimeZone: "UTC"
+        preserve_insertion_order: false
+        memory_limit: "2800MB"
+      attach:
+        - path: warehouse
+          alias: lake
+          options:
+            type: iceberg
+            endpoint: "{{ env_var('ICEBERG_CATALOG_ENDPOINT', 'http://localhost:8181') }}"
+            authorization_type: none
+            disable_multi_table_commit: true
