@@ -10,6 +10,8 @@ lake/
 dbt_project/target/
 dbt_project/logs/
 dbt_project/dbt_packages/
+dbt_project/.user.yml
+felix_data_homework_submission/
 
 # CSVs are supplied input files; keep the directory but do not commit copies.
 data/raw/*.csv

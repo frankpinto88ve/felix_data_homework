@@ -20,61 +20,39 @@ dbt_project/          dbt models, tests, macros, and documentation
 
 ## Prerequisites
 
-Python 3.10+ is recommended.
+Docker Desktop is required. Python is installed inside the `pipeline` image, so no host virtual environment is needed.
 
-Docker Desktop is required for the local Iceberg REST catalog.
+## First-time setup
 
-```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-```
-
-## Run locally
-
-1. Put `payments.csv`, `receipts.csv`, and `disbursements.csv` in `data/raw/`.
-   The supplied archive can be unpacked without its macOS metadata files using:
-
-   ```bash
-   unzip -j Arquivo.zip payments.csv receipts.csv disbursements.csv -d data/raw
-   ```
-
-2. Start the local Iceberg catalog:
-
-   ```bash
-   docker compose up -d iceberg-rest
-   docker compose build pipeline
-   ```
-
-3. Load whichever source files are available into Iceberg's `raw` schema:
-
-   ```bash
-   docker compose run --rm pipeline python ingestion/load_raw_data.py
-   ```
-
-4. Build the empty staging and intermediate tables from the historical raw data:
-
-   ```bash
-   docker compose run --rm pipeline sh -lc 'cd dbt_project && dbt build --profiles-dir . --vars "{\"initial_load\": true}"'
-   ```
-
-## Initial and incremental transformation runs
-
-Use `initial_load: true` only once: when staging and intermediate are empty and you need the historical backfill. It uses append semantics and skips the expensive source sort because the provided historical snapshot has unique source IDs.
+**The supplied CSV inputs are intentionally excluded from this repository.** Before running the project, place `payments.csv`, `receipts.csv`, and `disbursements.csv` in `data/raw/`. If you have the supplied archive, unpack only those files:
 
 ```bash
-docker compose run --rm pipeline sh -lc 'cd dbt_project && dbt build --profiles-dir . --vars "{initial_load: true}"'
+unzip -j Arquivo.zip payments.csv receipts.csv disbursements.csv -d data/raw
 ```
 
-After that, there is one normal transformation run: execute it daily with a rolling 48-hour raw-ingestion window.
+From a clean checkout, run these commands in order:
 
 ```bash
-docker compose run --rm pipeline sh -lc "cd dbt_project && dbt build --profiles-dir . --vars '{window_start: \"2026-10-23 15:00:00+00:00\", window_end: \"2026-10-25 15:00:00+00:00\"}'"
+docker compose up -d iceberg-rest
+docker compose build pipeline
+docker compose run --rm pipeline python ingestion/load_raw_data.py
+docker compose run --rm pipeline sh -lc 'cd dbt_project && dbt build --profiles-dir . --vars "{\"initial_load\": true}"'
 ```
 
-`window_start` and `window_end` are runtime variables. Adjust them ad hoc when a specific repair or backfill needs a different UTC interval; keep the end exclusive and avoid overlapping concurrent runs.
+**Use `initial_load: true` only when staging and intermediate are empty.** It performs the one-time historical backfill. Do not use it for normal runs, because its append strategy can duplicate existing staging rows.
 
-The window is start-inclusive and end-exclusive. It rereads raw records ingested during the prior 48 hours, merges their newest versions into staging, and refreshes the affected intermediate remittances. Overlap with the previous daily run is intentional and does not create duplicates. Raw remains append-only; staging retains one current row per source ID in its original event-date partition.
+## Normal daily run
+
+After the first-time setup, run the loader to ingest newly delivered files, then run one rolling 48-hour transformation window:
+
+```bash
+docker compose run --rm pipeline python ingestion/load_raw_data.py
+docker compose run --rm pipeline sh -lc "cd dbt_project && dbt build --profiles-dir . --vars '{window_start: \"<UTC_START_48_HOURS_AGO>\", window_end: \"<UTC_RUN_TIME>\"}'"
+```
+
+Replace the placeholder values with UTC timestamps such as `2026-10-23 15:00:00+00:00` and `2026-10-25 15:00:00+00:00`. The window is start-inclusive and end-exclusive. It rereads raw records ingested during the prior 48 hours, merges their newest versions into staging, and refreshes the affected intermediate remittances. Overlap with the prior daily run is intentional and does not create duplicates.
+
+For an ad hoc repair or backfill, change `window_start` and `window_end` to the required UTC interval. Keep the end exclusive and do not run overlapping jobs concurrently.
 
 The loader treats each source file independently. It appends newly seen files, records a run UUID and minute-truncated UTC ingestion timestamp on every raw row, and skips an exact file redelivery based on its SHA-256 content hash.
 
